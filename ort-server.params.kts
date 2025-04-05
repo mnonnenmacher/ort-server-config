@@ -36,7 +36,18 @@ val resolvedReporterJobConfig = context.ortRun.jobConfigs.reporter?.let {
 }
 
 // Disable the notifier job as the notifier-worker is currently not configured in Azure Cloud.
-val resolvedJobConfigs = context.ortRun.jobConfigs.copy(reporter = resolvedReporterJobConfig, notifier = null)
+var resolvedJobConfigs = context.ortRun.jobConfigs.copy(reporter = resolvedReporterJobConfig, notifier = null)
+
+// Configure the minimum ScanCode version for stored scan results.
+context.ortRun.jobConfigs.scanner?.let { scannerJobConfig ->
+    val scanCodeConfig = (scannerJobConfig.config?.get("ScanCode") ?: PluginConfig(emptyMap(), emptyMap())).let { 
+        it.copy(options = it.options + mapOf("minVersion" to "32.2.1", "maxVersion" to "33.0.0"))
+    }
+    val oldConfig = scannerJobConfig.config ?: emptyMap()
+    resolvedJobConfigs = resolvedJobConfigs.copy(
+        scanner = scannerJobConfig.copy(config = oldConfig + ("ScanCode" to scanCodeConfig))
+    )
+}
 
 validationResult = ConfigValidationResultSuccess(
     resolvedConfigurations = resolvedJobConfigs,
